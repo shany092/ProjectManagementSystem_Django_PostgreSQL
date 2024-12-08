@@ -1,0 +1,34 @@
+# Python-related files
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.sqlite3
+
+# Virtual environment
+env/
+venv/
+ENV/
+.VENV/
+
+# Django settings
+*.log
+*.pot
+*.py[co]
+
+# Local development settings
+local_settings.py
+
+# Static files and media
+/staticfiles/
+/media/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
