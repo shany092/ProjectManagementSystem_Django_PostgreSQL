@@ -1,0 +1,55 @@
+/* dashboard.css */
+
+body.dashboard {
+    background-color: hsl(246, 98%, 24%); /* Light grey background */
+    font-family: Arial, sans-serif; /* Font style */
+}
+
+#content-main {
+    padding: 20px; /* Space around content */
+    background-color: rgb(9, 29, 250); /* White background for content area */
+    border-radius: 8px; /* Rounded corners */
+    box-shadow: 0 2px 5px rgba(218, 210, 210, 0.627); /* Subtle shadow */
+}
+
+.small-box {
+    background-color: #3b3b45; /* Blue background */
+    color: rgb(180, 175, 175); /* White text */
+    border-radius: 5px; /* Rounded corners */
+    padding: 20px; /* Padding inside the box */
+    margin-bottom: 20px; /* Space between boxes */
+}
+
+.small-box h3 {
+    font-size: 36px; /* Large font size for counts */
+}
+
+.dashboard-stats h3 {
+    color: #302e2e; /* Dark grey color for headings */
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+th, td {
+    padding: 8px;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+th {
+    background-color: #e59090;
+}
+#calendar {
+    max-width: 100%;
+    margin: 0 auto;
+}
+.calendar-container {
+    margin: 20px 0;
+}
+
+#calendar {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}

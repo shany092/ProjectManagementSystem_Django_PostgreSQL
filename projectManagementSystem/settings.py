@@ -10,10 +10,37 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import os
 from pathlib import Path
+
+
+AUTH_USER_MODEL = 'pmpapp.CustomUser'
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',  # Default
+]
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+EMAIL_BACKEND = 'django.core.mail.backends.dummy.EmailBackend'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'  # Example: Gmail's SMTP server
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'shany092@gmail.com'
+EMAIL_HOST_PASSWORD = 'gngw ohof yfld uevs'  # Use an app password or environment variable for security
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/5.1/howto/static-files/
+
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [
+    BASE_DIR / "static",  # Points to your static directory
+]
+STATIC_ROOT = BASE_DIR / "staticfiles"  # For production static files collection
 
 
 # Quick-start development settings - unsuitable for production
@@ -31,6 +58,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -39,7 +67,21 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'pmpapp',
+    'debug_toolbar',
+    
+    
 ]
+
+JAZZMIN_SETTINGS = {
+    "site_title": "Mekex Innovation",
+    "site_header": "Mekex Innovation",
+    "welcome_sign": "Welcome Mekex Innovation",
+    "topmenu_links": [
+        {"name": "Home", "url": "admin:index", "permissions": ["auth.view_user"]},
+        {"name": "Documentation", "url": "https://docs.djangoproject.com/"},
+    ],
+    # Add more customization as needed
+}
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -58,6 +100,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+        'debug_toolbar.middleware.DebugToolbarMiddleware',
+
 ]
 
 ROOT_URLCONF = 'projectManagementSystem.urls'
@@ -65,7 +109,10 @@ ROOT_URLCONF = 'projectManagementSystem.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': [
+           
+            os.path.join(BASE_DIR, 'templates'),
+            ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -79,6 +126,8 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'projectManagementSystem.wsgi.application'
+
+
 
 
 # Database
@@ -95,14 +144,9 @@ DATABASES = {
     }
 }
 
-#AUTH_USER_MODEL = 'pmpapp.Employee'
 
-AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',  # Default
-]
-
-LOGIN_REDIRECT_URL = '/dashboard/'  # Redirect after login
-LOGOUT_REDIRECT_URL = '/login/'     # Redirect after logout
+LOGIN_REDIRECT_URL = '/admin'  # Redirect after login
+LOGOUT_REDIRECT_URL = '/admin/login/'     # Redirect after logout
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -135,12 +179,11 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.1/howto/static-files/
-
-STATIC_URL = 'static/'
-
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+JAZZMIN_SETTINGS = {
+    "site_title": "Library Zeeshan",
+}

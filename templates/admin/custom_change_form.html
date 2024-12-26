@@ -1,0 +1,155 @@
+{% comment %} {% extends "admin/change_form.html" %}
+{% load static i18n admin_urls admin_modify %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.1/dist/css/adminlte.min.css">
+    <!-- Any additional JavaScript libraries you need can be added here -->
+{% endblock %}
+
+{% block content %}
+    <div id="content-main">
+        {% comment %} <form enctype="multipart/form-data" method="post" id="{{ opts.model_name }}_form" novalidate> {% endcomment %}
+            {% csrf_token %}
+            
+            <!-- Employee Details Section -->
+            <fieldset class="module aligned">
+                <legend>{% translate "Employee Details" %}</legend>
+                {{ adminform.form.non_field_errors }}
+                {% for field in adminform %}
+                    <div class="form-row {% if field.errors %}errors{% endif %}">
+                        {{ field.errors }}
+                        {{ field.label_tag }} {{ field }}
+                        {% if field.help_text %}
+                            <div class="help">{{ field.help_text|safe }}</div>
+                        {% endif %}
+                    </div>
+                {% comment %} {% endfor %} {% endcomment %}
+
+                <!-- Hide left_date initially -->
+                <div class="form-row" id="left_date_row" style="display: none;">
+                    <label for="id_left_date">{% translate "Left Date:" %}</label>
+                    <input id="id_left_date" name="left_date" type="date" class="vDateField">
+                </div>
+                {% if is_employee_admin %}
+                <!-- Render custom fields or logic specific to EmployeeAdmin -->
+            {% endif %}
+                
+
+              
+            <!-- Location Details Section -->
+            <fieldset class="module aligned">
+                <legend>{% translate "Location Details" %}</legend>
+
+                
+
+                
+
+                
+
+                
+
+            <!-- Default admin form content (for fields defined by the model) -->
+            <fieldset class="module aligned">
+                {% block field_sets %}
+                    {% for fieldset in adminform %}
+                        {% include "admin/includes/fieldset.html" with heading_level=2 prefix="fieldset" id_prefix=0 id_suffix=forloop.counter0 %}
+                    {% endfor %}
+                {% endblock %}
+            </fieldset>
+
+            <!-- Submit Buttons -->
+            <div class="form-group submit-row">
+                {% submit_row %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Custom JavaScript for employee code generation and location dropdowns -->
+    <script>
+        // Prefix mapping for Employee Type -> Employee Code
+        const employeeTypeToPrefix = {
+            "Italy Internal": "MKX1",
+            "Italy External": "MKX2",
+            "Pakistan Internal": "MKX3",
+            "Pakistan External": "MKX4",
+        };
+    
+        // Function to dynamically populate Employee Code based on Employee Type
+        function updateEmployeeCode() {
+            const employeeType = $('#id_employee_type').val(); // Selected Employee Type
+            if (employeeType) {
+                const prefix = employeeTypeToPrefix[employeeType]; // Get prefix based on Employee Type
+    
+                // Fetch next available code from server
+                $.ajax({
+                    url: '/ajax/next-code/',
+                    data: { 'prefix': prefix },
+                    success: function (response) {
+                        $('#id_employee_code').val(response.next_code);
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Ajax Error:", status, error);
+                    }
+                });
+            } else {
+                $('#id_employee_code').val(''); // Clear Employee Code if no type is selected
+            }
+        }
+    
+        // Dynamic Loading for Continent, Country, State, City
+        function loadDropdown(endpoint, sourceId, targetId, emptyMessage) {
+            const sourceValue = $(`#${sourceId}`).val();
+            if (sourceValue) {
+                // Fetch options using AJAX
+                $.ajax({
+                    url: endpoint,
+                    type: 'GET',
+                    data: { id: sourceValue },
+                    success: function (data) {
+                        const target = $(`#${targetId}`);
+                        target.empty(); // Clear previous options
+                        target.append(`<option value="">${emptyMessage}</option>`); // Add placeholder
+                        // Populate new options
+                        $.each(data, function (index, item) {
+                            target.append(`<option value="${item.id}">${item.name}</option>`);
+                        });
+                    },
+                    error: function () {
+                        alert('Error loading dropdown options');
+                    },
+                });
+            } else {
+                $(`#${targetId}`).empty().append(`<option value="">${emptyMessage}</option>`);
+            }
+        }
+    
+        // Bind Events for Dropdown Logic
+        $(document).ready(function () {
+            // Update Employee Code on Employee Type selection
+            $('#id_employee_type').change(function () {
+                updateEmployeeCode();
+    
+                // Reset dropdowns on type change
+                $('#id_continent, #id_country, #id_state, #id_city').val('');
+            });
+    
+            // Load countries based on continent
+            $('#id_continent').change(function () {
+                loadDropdown('/ajax/load-countries/', 'id_continent', 'id_country', '{% translate "Select Country" %}');
+            });
+    
+            // Load states based on country
+            $('#id_country').change(function () {
+                loadDropdown('/ajax/load-states/', 'id_country', 'id_state', '{% translate "Select State" %}');
+            });
+    
+            // Load cities based on state
+            $('#id_state').change(function () {
+                loadDropdown('/ajax/load-cities/', 'id_state', 'id_city', '{% translate "Select City" %}');
+            });
+        });
+    </script>
+    
+{% endblock %} {% endcomment %}

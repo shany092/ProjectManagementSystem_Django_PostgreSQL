@@ -1,0 +1,99 @@
+{% extends "admin/base.html" %}
+{% load static i18n %}
+
+
+{% block extrahead %}
+{{ block.super }}
+    <!-- Include  Styles -->
+    <link rel="stylesheet" href="{% static 'jazzmin/css/main.css' %}">
+    <!-- Optional plugins -->
+    {% comment %} <link rel="stylesheet" href="{% static '/vendor/fontawesome-free/css/all.min.css' %}">
+    <script src="{% static 'vendor/adminlte/js/adminlte.min.js' %}"></script>
+    <link rel="stylesheet" type="text/css" href="{% static 'jazzmin/css/main.css' %}">
+    <link rel="stylesheet" href="{% static '/vendor/fontawesome-free/css/all.min.css' %}"> {% endcomment %}
+    
+  <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.1/dist/js/adminlte.min.js"></script>
+  <script src="{% static 'custom/js/chart.js'%}"></script>
+   
+    <!-- Chart.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+
+        {% block branding_logo %}
+    <img src="static 'img/logo.png alt="Mekex Innovation Logo" width="80" />
+    
+{% endblock %}
+        document.addEventListener('DOMContentLoaded', function () {
+            const ctx = document.getElementById('project-chart').getContext('2d');
+            const projectChart = new Chart(ctx, {
+                type: 'bar', // Choose 'line', 'pie', etc. for different types
+                data: {
+                    labels: ['Project A', 'Project B', 'Project C', 'Project D'],
+                    datasets: [{
+                        label: 'Completed Tasks',
+                        data: [12, 19, 3, 5], // Dummy data
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.2)',
+                            'rgba(54, 162, 235, 0.2)',
+                            'rgba(255, 206, 86, 0.2)',
+                            'rgba(75, 192, 192, 0.2)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(75, 192, 192, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.1/dist/css/adminlte.min.css">
+{% endblock %}
+{% block extrajs %}
+{% comment %} <script src="{% static 'vendor/adminlte/js/adminlte.min.js' %}"></script> {% endcomment %}
+{% endblock %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Integration</title>
+
+    <!--  CSS -->
+    <link rel="stylesheet" href="{% static 'jazzmin/css/.main.css' %}">
+    <link rel="stylesheet" href="{% static '/plugins/fontawesome-free/css/all.min.css' %}">
+</head>
+
+{{ block.super }}
+   
+
+
+         {% block branding %}
+            <a href="{% url 'admin:index' %}" class="brand-link">
+                <img src="{% static '/img/logo.png' %}" alt=" Mekex Innovation " 
+                    class="hidden-alt-text brand-image img-circle elevation-3" style="opacity: .8">
+                <span class="brand-text font-weight-light">Mekex Innovation </span>
+            </a>
+        {% endblock %}
+
+{% block nav-global %}
+    {{ block.super }}
+    <div class="d-flex align-items-center">
+        <!-- Additional global navigation items -->
+    </div>
+{% endblock %}
+.hidden-alt-text {position: absolute; width: 1px; height: 1px;overflow: hidden;clip: rect(1px, 1px, 1px, 1px); clip-path: inset(50%);white-space: nowrap;}
+
+
