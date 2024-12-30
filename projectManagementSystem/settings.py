@@ -73,13 +73,13 @@ INSTALLED_APPS = [
 ]
 
 JAZZMIN_SETTINGS = {
-    "site_title": "Mekex Innovation",
-    "site_header": "Mekex Innovation",
-    "welcome_sign": "Welcome Mekex Innovation",
-    "topmenu_links": [
-        {"name": "Home", "url": "admin:index", "permissions": ["auth.view_user"]},
-        {"name": "Documentation", "url": "https://docs.djangoproject.com/"},
-    ],
+    # "site_title": "Mekex Innovation",
+    # "site_header": "Mekex Innovation",
+    # "welcome_sign": "Welcome Mekex Innovation",
+    # "topmenu_links": [
+    #     {"name": "Home", "url": "admin:index", "permissions": ["auth.view_user"]},
+    #     {"name": "Documentation", "url": "https://docs.djangoproject.com/"},
+    # ],
     # Add more customization as needed
 }
 
@@ -185,5 +185,6 @@ USE_TZ = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 JAZZMIN_SETTINGS = {
-    "site_title": "Library Zeeshan",
+    "custom_css": None,
+    "custom_js": "admin/js/jquery.mask.js",  # Load your custom JS globally
 }

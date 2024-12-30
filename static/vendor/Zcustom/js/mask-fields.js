@@ -1,4 +1,4 @@
-{/* <script>
+/*{ <script>
     function loadDropdown(url, sourceId, targetId) {
         const sourceValue = document.getElementById(sourceId).value;
         $.ajax({
@@ -163,4 +163,4 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('id_country').setAttribute('placeholder', 'Select Country');
     document.getElementById('id_state').setAttribute('placeholder', 'Select State');
     document.getElementById('id_city').setAttribute('placeholder', 'Select City');
- */}
+ }*/

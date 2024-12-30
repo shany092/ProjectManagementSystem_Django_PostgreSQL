@@ -1,6 +1,7 @@
 {% extends "admin/base.html" %}
 {% load static i18n %}
-{% block title %}MKX {{ title }} | Mekex Innovation{% endblock %}
+{% comment %} change title here {% endcomment %}
+{% block title %}MKX  | Mekex Innovation{% endblock %}
 
 {% comment %} {% block branding %}
       <div id="site-name"><a href="{% url 'admin:index' %}">Mekex Innovation</a></div>
@@ -13,4 +14,58 @@
       {% endif %}
 {% endblock %} {% endcomment %}
 
-{% block nav-global %}{% endblock %}
+{% comment %} {% block nav-global %} {% endcomment %}
+
+{% comment %} {% block sidebar %}
+    {{ block.super }}  
+    <!-- Include default sidebar items -->
+
+    <nav class="nav-sidebar">
+         <!-- Section 1: Authentication and Authorization -->
+         <div class="sidebar-section">
+          <h3 class="sidebar-heading">Authentication and Authorization</h3>
+          <ul class="nav-sidebar-item">
+              <li><a href="{% url 'admin:auth_group_changelist' %}">Groups</a></li>
+              <li><a href="{% url 'admin:pmpapp_customuser_changelist' %}">Custom Users</a></li>
+          </ul>
+        </div>
+        <!-- Section 3: Employee -->
+      <div class="sidebar-section">
+          <h3 class="sidebar-heading">Employee</h3>
+          <ul class="nav-sidebar-item">
+              <li><a href="{% url 'admin:pmpapp_employee_changelist' %}">Employees</a></li>
+              <li><a href="{% url 'admin:pmpapp_designation_changelist' %}">Designations</a></li>
+          </ul>
+        </div>
+
+      <!-- Section 4: Projects -->
+      <div class="sidebar-section">
+          <h3 class="sidebar-heading">Projects</h3>
+          <ul class="nav-sidebar-item">
+              <li><a href="{% url 'admin:pmpapp_project_changelist' %}">Projects</a></li>
+              <li><a href="{% url 'admin:pmpapp_task_changelist' %}">Tasks</a></li>
+          </ul>
+      </div>
+    
+    </nav>
+{% endblock %} 
+{% endcomment %}
+
+{% block extrahead %}
+<style>
+  .nav-global-custom li {
+      display: inline;
+      margin-right: 10px;
+  }
+</style>
+
+<script src="{% static 'admin/js/employee_dynamic_filtering.js' %}" defer></script>
+{% endblock extrahead %}
+
+
+
+{% comment %} {% endblock %} {% endcomment %}
+ {% block footer %}
+{% comment %} {{ block.super }} {% endcomment %}
+
+{% endblock %} 

@@ -1,0 +1,27 @@
+.sidebar-heading {
+    font-weight: bold;
+    margin-top: 15px;
+    padding: 5px 0;
+}
+
+.sidebar-section {
+    margin-bottom: 15px;
+}
+
+.nav-sidebar-item {
+    list-style: none;
+    padding-left: 0;
+}
+
+.nav-sidebar-item li {
+    padding: 5px 0;
+}
+
+.nav-sidebar-item a {
+    text-decoration: none;
+    color: #555;
+}
+
+.nav-sidebar-item a:hover {
+    color: #000;
+}

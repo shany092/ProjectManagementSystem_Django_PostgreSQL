@@ -5,7 +5,7 @@ from django.utils.decorators import method_decorator
 from django.contrib import messages
 from django.contrib.auth.views import  LoginView
 from django.contrib.auth.decorators import login_required
-from .models import Country, State, City, Employee
+from .models import Country, State, City, Employee, EmployeeType, EmployeeCodeRule
 from django.http import JsonResponse
 from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import Max
@@ -65,7 +65,20 @@ def employee_dashboard(request):
 #         return JsonResponse({'next_code': next_code})
 #     except Exception as e:
 #         return JsonResponse({'error': f"Unable to fetch employee code. Error: {str(e)}"}, status=500)
-
+# view to filter employee type on country base
+def filter_employee_types(request):
+    """
+    Filters employee types based on the selected country and returns them as JSON.
+    """
+    country_id = request.GET.get('country')  # Get the selected country's ID
+    if not country_id:  # If no country is provided, return an empty response
+        return JsonResponse([], safe=False)
+    
+    # Filter the EmployeeType objects by country
+    employee_types = EmployeeType.objects.filter(country_id=country_id).values('id', 'name')
+    
+    # Return the filtered data as a JSON response
+    return JsonResponse(list(employee_types), safe=False)
 # Fetch the next available Employee Code
 def get_next_employee_code(request):
     prefix = request.GET.get('prefix', '')
@@ -91,3 +104,23 @@ def load_cities(request):
     state_id = request.GET.get('state_id')
     cities = City.objects.filter(state_id=state_id).values('id', 'name')
     return JsonResponse(list(cities), safe=False)
+def get_states(request):
+    country_id = request.GET.get('country')
+    states = State.objects.filter(country_id=country_id).values('id', 'state_name')
+    return JsonResponse({s['id']: s['state_name'] for s in states})
+
+def get_cities(request):
+    country_id = request.GET.get('country')
+    cities = City.objects.filter(country_id=country_id).values('id', 'city_name')
+    return JsonResponse({c['id']: c['city_name'] for c in cities})
+
+def get_employee_types(request):
+    country_id = request.GET.get('country')
+    employee_types = EmployeeType.objects.filter(country_id=country_id).values('id', 'name')
+    return JsonResponse({e['id']: e['name'] for e in employee_types})
+
+def get_country_mask(request, country_id):
+    country = Country.objects.filter(pk=country_id).first()
+    return JsonResponse({'phone_number_mask': country.phone_number_mask,
+                         'cnic_number_mask': country.cnic_number_mask if country else ''}
+            )

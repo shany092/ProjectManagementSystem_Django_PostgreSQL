@@ -10,10 +10,15 @@ urlpatterns = [
     path("admin/", admin_site.urls),  # Django Admin
     path("admin/dashboard/", views.admin_dashboard, name="admin-dashboard"),
     # ajax to load county, city and state according to the selected continent or country
-    path('ajax/load-countries/', views.load_countries, name='ajax_load_countries'),
-    path('ajax/load-states/', views.load_states, name='ajax_load_states'),
-    path('ajax/load-cities/', views.load_cities, name='ajax_load_cities'),
-    path('ajax/next-code/', views.get_next_employee_code, name='next_employee_code'),
+    path('api/states/', views.get_states, name='api_get_states'),
+    path('api/cities/', views.get_cities, name='api_get_cities'),
+    path('api/employee_types/', views.get_employee_types, name='api_get_employee_types'),
+    path('api/get_country_mask/<int:country_id>/', views.get_country_mask, name='get_country_mask'),
+
+    # path('ajax/load-countries/', views.load_countries, name='ajax_load_countries'),
+    # path('ajax/load-states/', views.load_states, name='ajax_load_states'),
+    # path('ajax/load-cities/', views.load_cities, name='ajax_load_cities'),
+    # path('ajax/next-code/', views.get_next_employee_code, name='next_employee_code'),
 
     # Employee-specific routes
     path("employee/login/", views.CustomLoginView.as_view(), name="employee-login"),

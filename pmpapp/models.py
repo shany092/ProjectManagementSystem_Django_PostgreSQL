@@ -88,6 +88,10 @@ class EmployeeType(models.Model):
     # employee_type_id = models.BigIntegerField(primary_key=True, null=False)
     name = models.CharField(max_length=50, unique=True)  # e.g., 'Italy Internal'
     description = models.TextField(null=True, blank=True)  # Optional field for detailed info
+    country = models.ForeignKey('country', on_delete=models.CASCADE, related_name='employee_Types', null=True )
+    class Meta:
+        verbose_name = "Employee Type"
+        verbose_name_plural = "Employee Types"
 
     def __str__(self):
         return self.name
@@ -118,7 +122,7 @@ class Employee(models.Model):
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
-    phone_number = models.CharField(max_length=15, null=True, blank=True)
+    phone_number = models.CharField(max_length=20, null=True, blank=True)
     nic_number = models.CharField(max_length=20, null=True, blank=True, unique=True)
     passport_number = models.CharField(max_length=15, null=True, blank=True, unique=True)
     date_joined = models.DateField()
@@ -127,15 +131,18 @@ class Employee(models.Model):
     department = models.ForeignKey('Department', on_delete=models.CASCADE, null=True)
     designation = models.ForeignKey('Designation', on_delete=models.SET_NULL, null=True)
     continent = models.ForeignKey('Continent', on_delete=models.SET_NULL, null=True, blank=True)
-    country = models.ForeignKey('Country', on_delete=models.SET_NULL, null=True)
-    state = models.ForeignKey('State', on_delete=models.SET_NULL, null=True)
-    city = models.ForeignKey('City', on_delete=models.SET_NULL, null=True)
+    country = models.ForeignKey('Country', on_delete=models.CASCADE, related_name="employee_types")
+    state = models.ForeignKey('State', on_delete=models.CASCADE, null=True, related_name='employees')
+    city = models.ForeignKey('City', on_delete=models.CASCADE, null=True, related_name='employees')
     salary = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=True)
     is_superuser = models.BooleanField(default=False)
+    class Meta:
+        verbose_name = "Employee"
+        verbose_name_plural = "Employees"
 
     def save(self, *args, **kwargs):
         # Generate the employee code if not already set
@@ -262,14 +269,16 @@ class Continent(models.Model):
 
 class Country(models.Model):
     country_id = models.AutoField(primary_key=True)
-    continent_id = models.ForeignKey('Continent', on_delete=models.SET_NULL, 
-                                     null=True, related_name='country_continent_fk')
+    continent = models.ForeignKey('Continent', on_delete=models.CASCADE, null=True, related_name= 'countries')# related_name='country_continent_fk')
     country_name = models.CharField(max_length=100)
     country_code = models.CharField(max_length=3, unique=True)
-    region = models.CharField(max_length=100, null=True, blank=True)
+    # region = models.CharField(max_length=100, null=True, blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    phone_number_mask = models.CharField(max_length=20, blank=True, null=True)  # Mask pattern
+    cnic_number_mask = models.CharField(max_length=20, blank=True, null=True)  # Mask pattern
+
     class Meta:
         verbose_name_plural = "Countries"  # Set plural name here
 
@@ -279,8 +288,7 @@ class Country(models.Model):
 
 class State(models.Model):
     state_id = models.AutoField(primary_key=True)
-    country_id = models.ForeignKey('Country',
-                                    on_delete=models.SET_NULL, null=True, related_name='state_country_fk')
+    country = models.ForeignKey('Country',on_delete=models.SET_NULL, null=True, related_name='state') #related_name='state_country_fk')
     state_name = models.CharField(max_length=100)
     state_code = models.CharField(max_length=10, null=True, blank=True)    
     created_at = models.DateTimeField(auto_now_add=True)
@@ -292,10 +300,8 @@ class State(models.Model):
 
 class City(models.Model):
     city_id = models.AutoField(primary_key=True)
-    country_id = models.ForeignKey('Country',
-                                    on_delete=models.SET_NULL, null=True, related_name='city_country_fk')
-    state_id = models.ForeignKey('State', 
-                                 on_delete=models.SET_NULL, null=True, related_name='city_state_fk')
+    country = models.ForeignKey('Country', on_delete=models.SET_NULL, null=True,related_name='city') #related_name='city_country_fk')
+    state = models.ForeignKey('State', on_delete=models.SET_NULL, null=True, related_name='city_state_fk')
     city_name = models.CharField(max_length=100)
     postal_code = models.CharField(max_length=20, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
