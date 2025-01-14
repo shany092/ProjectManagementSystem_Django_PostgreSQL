@@ -1,0 +1,10 @@
+/* Add the style to display each team member on a new line */
+.form-row .field-team_members {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.form-row .field-team_members label {
+    display: block;
+    margin-bottom: 2px;
+}

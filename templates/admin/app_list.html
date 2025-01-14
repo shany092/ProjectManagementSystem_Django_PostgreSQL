@@ -1,6 +1,27 @@
 {% load i18n %}
 
 {% if app_list %}
+{% block sidebar %}
+    {{ block.super }}  <!-- Include default sidebar items -->
+
+    <nav class="nav-sidebar">
+        <div class="sidebar-section">
+            <h3 class="sidebar-heading">Custom Section 1</h3>
+            <ul class="nav-sidebar-item">
+                <li><a href="{% url 'admin:app_model_changelist' %}">Model 1</a></li>
+                <li><a href="{% url 'admin:app_model2_changelist' %}">Model 2</a></li>
+            </ul>
+        </div>
+
+        <div class="sidebar-section">
+            <h3 class="sidebar-heading">Custom Section 2</h3>
+            <ul class="nav-sidebar-item">
+                <li><a href="/some/custom/url/">Custom Page 1</a></li>
+                <li><a href="/some/other/url/">Custom Page 2</a></li>
+            </ul>
+        </div>
+    </nav>
+{% endblock %}
   {% comment %} {% for app in app_list %}
     {% comment %} <div class="app-{{ app.app_label }} module{% if app.app_url in request.path|urlencode %} current-app{% endif %}"> {% endcomment %}
       {% comment %} <table>

@@ -11,12 +11,10 @@ from django.utils.translation import gettext_lazy as _
 from django.db import transaction
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.utils import timezone
+from django.db.models import Max
+from django.core.exceptions import ValidationError
 
 # Manager for Custom User
-
-
-
-
 # Custom Manager for User model
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, username=None, password=None, **extra_fields):
@@ -59,6 +57,10 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     is_superuser = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Authentication and Authorization"
+        verbose_name_plural = "Users"
     
 
     USERNAME_FIELD = 'username'
@@ -110,6 +112,19 @@ class EmployeeCodeRule(models.Model):
     
 CustomUser = get_user_model()
 
+class EmployeeProfile(models.Model):
+    employee_profile = models.OneToOneField(
+        settings.AUTH_USER_MODEL,  # Links to CustomUser
+        on_delete=models.CASCADE,
+        related_name='employee_profile'
+    )
+    department = models.CharField(max_length=100, blank=True, null=True)
+    position = models.CharField(max_length=100, blank=True, null=True)
+    joining_date = models.DateField(blank=True, null=True)
+    bio = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.position or 'Employee'}"
 class Employee(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
@@ -128,12 +143,12 @@ class Employee(models.Model):
     date_joined = models.DateField()
     left_date = models.DateField(null=True, blank=True)
     job_title = models.CharField(max_length=50)
-    department = models.ForeignKey('Department', on_delete=models.CASCADE, null=True)
+    department = models.ForeignKey('Department', on_delete=models.SET_NULL, null=True)
     designation = models.ForeignKey('Designation', on_delete=models.SET_NULL, null=True)
-    continent = models.ForeignKey('Continent', on_delete=models.SET_NULL, null=True, blank=True)
+    # continent = models.ForeignKey('Continent', on_delete=models.SET_NULL, null=True, blank=True)
     country = models.ForeignKey('Country', on_delete=models.CASCADE, related_name="employee_types")
-    state = models.ForeignKey('State', on_delete=models.CASCADE, null=True, related_name='employees')
-    city = models.ForeignKey('City', on_delete=models.CASCADE, null=True, related_name='employees')
+    state = models.ForeignKey('State', on_delete=models.SET_NULL, null=True, related_name='employees')
+    city = models.ForeignKey('City', on_delete=models.SET_NULL, null=True, related_name='employees')
     salary = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -173,7 +188,29 @@ class Employee(models.Model):
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.employee_code})"
 
+class ProjectType(models.Model):
+    name = models.CharField(max_length=100, unique=True)  # Full name of the project type
+    description = models.TextField(blank=True, null=True)  # Optional detailed description
+    abbreviation = models.CharField(max_length=1)  # Two-letter code (e.g., 'CO', 'OT')
 
+    class Meta:
+        verbose_name = "Project Type"
+        verbose_name_plural = "Project Types"
+
+    def __str__(self):
+        return f"{self.name} ({self.abbreviation})"
+        
+class ProjectInterval(models.Model):
+    name = models.CharField(max_length=255, unique=True)  # Name of the interval (e.g., "Weekly", "Sprint")
+    interval = models.PositiveIntegerField(unique=True)  # Numerical identifier (e.g., 0, 1, 2, etc.)
+
+    class Meta:
+        verbose_name = "Project Interval"
+        verbose_name_plural = "Project Intervals"
+
+    def __str__(self):
+        return f"{self.name} ({self.interval})"
+       
 class Project(models.Model):
     """Model representing a project."""
     STATUS_CHOICES = [
@@ -181,80 +218,162 @@ class Project(models.Model):
         ('In Progress', 'In Progress'),
         ('Completed', 'Completed'),
     ]
+    Client_ID = models.ForeignKey('Clients', on_delete=models.SET_NULL, null=True ,db_column="Client_ID", to_field='Client_ID')
+    project_type = models.ForeignKey(ProjectType, on_delete=models.SET_NULL, null=True, related_name="projects")
+    # project_interval = models.ForeignKey(ProjectInterval, on_delete=models.SET_NULL, null=True, related_name="projects")
+    id = models.BigAutoField(primary_key=True)
+    Project_number = models.BigIntegerField(unique=True)
     project_name = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
     start_date = models.DateField(blank=True, null=True)
     end_date = models.DateField(blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Not Started')
-    #created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="created_projects")
+    created_by = models.ForeignKey('Employee', on_delete=models.SET_NULL, null=True, related_name="created_projects")
+    project_id = models.CharField(max_length=150, editable=False, unique=True)  # Ensure uniqueness
+    team_members = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name="projects", blank=True)  # Team Members
+    
+    def get_next_project_number(self):
+        # Query to get the current highest Project_number
+        last_project = Project.objects.aggregate(Max('Project_number'))
+        if last_project['Project_number__max']:
+            next_number = last_project['Project_number__max'] + 1
+        else:
+            next_number = 600  # Start the sequence at 600 if there are no projects
+        return next_number
+    
+    def save(self, *args, **kwargs):
+        # Generate `project_id` dynamically before saving
+        if not self.Project_number:
+            self.Project_number = self.get_next_project_number()
+        if not self.pk:  # Ensure this block runs only on object creation
+            type_code = self.project_type.abbreviation if self.project_type else "XX"  # Default abbreviation if null
+            # interval_code = str(self.project_interval.interval) if self.project_interval else "00"  # Default count if null
+            self.project_id = f"{self.Project_number}-{type_code}" #-{interval_code}
+
+        super().save(*args, **kwargs)  # Call the parent's save method
 
     def __str__(self):
-        return self.project_name
+        return self.project_name if self.project_name else "Unnamed Project"
 
+class Task(models.Model):
+    """Model representing a task within a project."""
+    PRIORITY_CHOICES = [
+        ('Low', 'Low'),
+        ('Medium', 'Medium'),
+        ('High', 'High'),
+    ]
+    STATUS_CHOICES = [
+        ('Not Started', 'Not Started'),
+        ('In Progress', 'In Progress'),
+        ('Completed', 'Completed'),
+    ]
+    project = models.ForeignKey('Project', on_delete=models.CASCADE,null=False)
+   # project_id = models.ForeignKey('Project', on_delete=models.CASCADE, null=False)
+    task_name = models.CharField(max_length=100)
+    due_date = models.DateField(blank=True, null=True)
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='Medium')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Not Started')
+    team_members = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name="tasks", blank=True)  # Team members assigned to the task
+    parent_task = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='subtasks') #  limit_choices_to=models.Q(parent_task__isnull=True)
 
-#class (models.Model):
-#     """Model representing a task within a project."""
-#     PRIORITY_CHOICES = [
-#         ('Low', 'Low'),
-#         ('Medium', 'Medium'),
-#         ('High', 'High'),
-#     ]
-#     STATUS_CHOICES = [
-#         ('Not Started', 'Not Started'),
-#         ('In Progress', 'In Progress'),
-#         ('Completed', 'Completed'),
-#     ]
-#     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="tasks")
-#     task_name = models.CharField(max_length=100)
-#     #assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="assigned_tasks")
-#     due_date = models.DateField(blank=True, null=True)
-#     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='Medium')
-#     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Not Started')
+    # def clean(self):
+    #     """Ensure the parent task belongs to the same project."""
+    #     if self.parent_task and self.parent_task.project != self.project:
+    #         raise ValidationError("The parent task must belong to the same project.")
+    # class Meta:
+    #     unique_together = ('project', 'parent_task')  # Enforce the project and parent_task combination uniqueness
+    # def save(self, *args, **kwargs):
+    #     # Ensure project is set if the task has a parent task
+    #     if not self.project and self.parent_task_id:
+    #         # Manually fetch the parent task and its project
+    #         parent_task = Task.objects.get(pk=self.parent_task_id)
+    #         self.project = parent_task.project
 
-#     def __str__(self):
-#         return f"{self.task_name} - {self.project.project_name}"
+    #     print(self)
+    #     # Call the original save method
+    #     super().save(*args, **kwargs)
+    def save(self, *args, **kwargs):
+        try:
+            if self.parent_task_id:
+                # Try manually fetching the parent task
+                parent_task = Task.objects.get(pk=self.parent_task_id)
+                # print(f"Fetched parent task: {parent_task}, Project: {parent_task.project}")
+                if not self.project_id and parent_task.project_id:
+                    self.project_id = parent_task.project_id
+                else:
+                    print("Project already set or parent task has no project.")
+            else:
+                print("No parent task provided.")
 
+        # Call the original save method
+            super().save(*args, **kwargs)
+        except Exception as e:
+            print(f"Saving task: {self}")
+            print(f"Parent task ID: {self.parent_task_id}")
+            print(f"Assigned project from parent task: {self.project}")
+            print(f"Error occurred while saving task: {e}")
+        # raise  # Optional: Re-raise the exception
 
-# class Team(models.Model):
-#     """Model representing a team."""
-#     team_name = models.CharField(max_length=100)
-#     # created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="created_teams")
-#     # members = models.ManyToManyField(User, through="TeamMember", related_name="teams")
+    def __str__(self):
+        return f"{self.task_name} ({self.project.project_name})"
 
-#     def __str__(self):
-#         return self.team_name
+class Team(models.Model):
+    """Model representing a team."""
+    team_name = models.CharField(max_length=100)
 
+    created_by = models.ForeignKey('Employee', on_delete=models.SET_NULL, null=True, related_name="created_teams")
+    members = models.ManyToManyField('Employee', through="TeamMember", related_name="teams")
 
-# class TeamMember(models.Model):
-#     """Model for associating users with teams."""
-#     team = models.ForeignKey(Team, on_delete=models.CASCADE)
-#     #user = models.ForeignKey(User, on_delete=models.CASCADE)
-#     joined_at = models.DateTimeField(auto_now_add=True)
+    def __str__(self):
+        return self.team_name
 
-#     def __str__(self):
-#         return f"{self.user.get_full_name()} in {self.team.team_name}"
+class TeamMember(models.Model):
+    """Model for associating users with teams."""
+    team = models.ForeignKey(Team, on_delete=models.CASCADE)
+    user = models.ForeignKey('Employee', on_delete=models.CASCADE)
+    joined_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return f"{self.user.get_full_name()} in {self.team.team_name}"
 
-# class Comment(models.Model):
-#     """Model representing comments on tasks."""
-#     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="comments")
-#     # user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-#     content = models.TextField()
-#     created_at = models.DateTimeField(auto_now_add=True)
+class Comment(models.Model):
+    """Model representing comments on tasks."""
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="comments")
+    # user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
 
-#     def __str__(self):
-#         return f"Comment by {self.user.username} on {self.task.task_name}"
+    def __str__(self):
+        return f"Comment by {self.user.username} on {self.task.task_name}"
 
+class ProjectTeam(models.Model):
+    """Model for associating teams with projects."""
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="project_teams")
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="team_projects")
 
-# class ProjectTeam(models.Model):
-#     """Model for associating teams with projects."""
-#     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="project_teams")
-#     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="team_projects")
+    def __str__(self):
+        return f"Team {self.team.team_name} on Project {self.project.project_name}"
 
-#     def __str__(self):
-#         return f"Team {self.team.team_name} on Project {self.project.project_name}"
+class Clients(models.Model):
+    Client_Number = models.AutoField(primary_key=True)  
+    Client_Name = models.CharField(max_length=150)
+    Client_Country = models.ForeignKey('Country', on_delete=models.SET_NULL, null=True)
+    Client_City = models.ForeignKey('City', on_delete=models.SET_NULL, null=True)
+    Client_ID = models.CharField(max_length=150, editable=False, unique=True)  # Make it non-editable in the admin UI
 
+    def save(self, *args, **kwargs):
+        # Generate Client_ID dynamically
+        if not self.pk:
+            super().save(*args, **kwargs)  # Save first to get Client_Number
+        country_code = self.Client_Country.country_name[:2].upper() if self.Client_Country else "NC"
+        city_code = self.Client_City.city_name[:2].upper() if self.Client_City else "NA"
+        self.Client_ID = f"{self.Client_Number}-{self.Client_Name[:4].upper()}-{country_code}{city_code}"
+        super().save(*args, **kwargs)
 
+    def __str__(self):
+        return self.Client_ID
+    class Meta:
+        verbose_name_plural = "Clients"  # Set plural name here
 
 class Continent(models.Model):
     continent_id = models.BigAutoField(primary_key=True)
@@ -265,7 +384,6 @@ class Continent(models.Model):
 
     def __str__(self):
         return self.continent_name
-
 
 class Country(models.Model):
     country_id = models.AutoField(primary_key=True)
@@ -285,7 +403,6 @@ class Country(models.Model):
     def __str__(self):
         return self.country_name
 
-
 class State(models.Model):
     state_id = models.AutoField(primary_key=True)
     country = models.ForeignKey('Country',on_delete=models.SET_NULL, null=True, related_name='state') #related_name='state_country_fk')
@@ -296,7 +413,6 @@ class State(models.Model):
 
     def __str__(self):
         return self.state_name
-
 
 class City(models.Model):
     city_id = models.AutoField(primary_key=True)
@@ -312,7 +428,6 @@ class City(models.Model):
     def __str__(self):
         return self.city_name
 
-
 class Designation(models.Model):
     designation_id = models.AutoField(primary_key=True)
     designation_name = models.CharField(max_length=100)
@@ -323,7 +438,6 @@ class Designation(models.Model):
     def __str__(self):
         return self.designation_name
 
-
 class Department(models.Model):
     department_id = models.AutoField(primary_key=True)
     department_name = models.CharField(max_length=100)
@@ -333,3 +447,5 @@ class Department(models.Model):
 
     def __str__(self):
         return self.department_name
+
+    

@@ -52,6 +52,25 @@ SECRET_KEY = 'django-insecure-bf#)v30=(ahb#lgbg-pnde%xb8d7xytn-ju#%ym0t8zoj))ll4
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'debug.log'),  # Location to store logs
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}
+LOGGING =   False
 ALLOWED_HOSTS = []
 
 
@@ -66,16 +85,15 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'pmpapp',
     'debug_toolbar',
-    
+    'pmpapp',
     
 ]
 
 JAZZMIN_SETTINGS = {
     # "site_title": "Mekex Innovation",
     # "site_header": "Mekex Innovation",
-    # "welcome_sign": "Welcome Mekex Innovation",
+    "welcome_sign": "Welcome Mekex Innovation",
     # "topmenu_links": [
     #     {"name": "Home", "url": "admin:index", "permissions": ["auth.view_user"]},
     #     {"name": "Documentation", "url": "https://docs.djangoproject.com/"},
@@ -100,9 +118,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-        'debug_toolbar.middleware.DebugToolbarMiddleware',
-
-]
+    'debug_toolbar.middleware.DebugToolbarMiddleware'
+    ]
 
 ROOT_URLCONF = 'projectManagementSystem.urls'
 
@@ -187,4 +204,5 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 JAZZMIN_SETTINGS = {
     "custom_css": None,
     "custom_js": "admin/js/jquery.mask.js",  # Load your custom JS globally
+    
 }

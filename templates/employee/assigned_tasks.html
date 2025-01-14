@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Assigned Tasks</h1>
+<ul>
+    {% for task in assigned_tasks %}
+        <li>
+            {{ task.task_name }} ({{ task.status }})
+            {% if task.subtasks.exists %}
+            <ul>
+                {% for subtask in task.subtasks.all %}
+                    <li>{{ subtask.task_name }} ({{ subtask.status }})</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </li>
+    {% endfor %}
+</ul>
+
+<h2>Add Subtask</h2>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Add Subtask</button>
+</form>
+{% endblock %}

@@ -96,9 +96,9 @@
 {% endblock %}
 .hidden-alt-text {position: absolute; width: 1px; height: 1px;overflow: hidden;clip: rect(1px, 1px, 1px, 1px); clip-path: inset(50%);white-space: nowrap;}
 
-{% block footer %}
+{% comment %} {% block footer %}
 {{ block.super }}
 <script src="{% static 'vendor/select2/js/select2.min.js' %}"></script>
 <script type="text/javascript" src="{% static 'vendor/Zcustom/js/employee_dynamic_filtering.js' %}"></script>
 
-{% endblock %}
+{% endblock %} {% endcomment %}

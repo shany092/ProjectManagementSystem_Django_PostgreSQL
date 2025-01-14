@@ -2,6 +2,14 @@
 {% load i18n static %}
 
 {% block bodyclass %}{{ block.super }} dashboard{% endblock %}
+<div>
+    {% if user.is_superuser %}
+        <h1>Welcome, Admin</h1>
+    {% endif %}
+    <!-- Check for registered apps or modules -->
+    {% comment %} {% block content %} 
+    {% endblock %} {% endcomment %}
+</div>
 
 <nav class="main-header navbar navbar-expand navbar-white navbar-light" id="jazzy-navbar">
     <ul class="navbar-nav">
@@ -47,10 +55,10 @@
     </div>
 {% endblock %}
 
-{% block nav-sidebar %}<p>This is text added by Zeeshan</p>
+{% block nav-sidebar %}
     {{ block.super }}
     <div class="nav-sidebar">
-        
+        <p>This is text added by Zeeshan</p>
     </div>
 {% endblock %}
 

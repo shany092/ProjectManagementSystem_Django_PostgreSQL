@@ -1,0 +1,246 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block bodyclass %}{{ block.super }} dashboard{% endblock %}
+
+<nav class="main-header navbar navbar-expand navbar-white navbar-light" id="jazzy-navbar">
+    <ul class="navbar-nav">
+        <li class="nav-item">
+            <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
+        </li>
+    </ul>
+
+    <ul class="navbar-nav ml-auto">
+        <li class="nav-item dropdown">
+            <a class="nav-link btn" data-toggle="dropdown" href="#" title="{{ user.email }}">
+                <i class="far fa-user" aria-hidden="true"></i>
+            </a>
+            <div class="dropdown-menu dropdown-menu-lg dropdown-menu-left" id="jazzy-usermenu">
+                <span class="dropdown-header">{% blocktrans %}Account{% endblocktrans %}</span>
+                <div class="dropdown-divider"></div>
+                <a href="{% url 'admin:password_change' %}" class="dropdown-item">
+                    <i class="fas fa-key mr-2"></i> {% blocktrans %}Change password{% endblocktrans %}
+                </a>
+                <div class="dropdown-divider"></div>
+                <form id="logout-form" method="post" action="{% url 'admin:logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="dropdown-item"><i class="fas fa-users mr-2"></i> {% blocktrans %}Log out{% endblocktrans %}</button>
+                </form>
+                <div class="dropdown-divider"></div>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'admin:auth_user_change' user.id %}" class="dropdown-item dropdown-footer">
+                        {% blocktrans %}See Profile{% endblocktrans %}
+                    </a>
+                {% endif %}
+            </div>
+        </li>
+    </ul>
+</nav>
+
+{% block nav-breadcrumbs %}
+    {{ block.super }}
+    <div class="breadcrumbs">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'admin:index' %}">{% translate 'Home' %}</a></li>
+            <li class="breadcrumb-item active">{% translate 'Dashboard' %}</li>
+        </ol>
+    </div>
+{% endblock %}
+
+{% block nav-sidebar %}
+    {{ block.super }}
+    <div class="nav-sidebar">
+        <p>This is text added by Zeeshan</p>
+    </div>
+{% endblock %}
+
+{% block coltype %}colMS{% endblock %}
+
+{% block content %}
+    {% comment %} <div id="container-fluid"> {% endcomment %}
+        <!-- Small boxes (Stat box) -->
+        {% comment %} <div class="row"> {% endcomment %}
+            <div class="col-lg-12 col-6">
+                    <!-- small box -->
+                <div class="small-box bg-info ">
+                    <div class="inner">
+                        {% comment %} <h3>3</h3> {% endcomment %}
+                            
+                        <h2>Welcome {{ employee.first_name }} {{ employee.last_name }}</h2>
+                            <p>Email: {{ employee.email }}</p>
+                    </div>
+                        <div class="icon">
+                            <i class="ion ion-bag"></i>
+                        </div>
+                    <a href="#" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+                    </div>
+                </div>
+            </div>
+        
+            <!-- ./col -->
+            {% comment %} <div class="col-lg-3 col-6">
+              <!-- small box -->
+              <div class="small-box bg-success">
+                <div class="inner">
+                  <h3>3<sup style="font-size: 20px"></sup></h3>
+  
+                  <p>Projects Completed</p>
+                </div>
+                <div class="icon">
+                  <i class="ion ion-stats-bars"></i>
+                </div>
+                <a href="#" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+              </div>
+            </div>
+            <!-- ./col -->
+            <div class="col-lg-3 col-6">
+              <!-- small box -->
+              <div class="small-box bg-warning">
+                <div class="inner">
+                  <h3>4</h3>
+  
+                  <p>Clients</p>
+                </div>
+                <div class="icon">
+                  <i class="ion ion-person-add"></i>
+                </div>
+                <a href="#" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+              </div>
+            </div>{% endcomment %}
+            <!-- ./col -->
+            {% comment %} <div class="col-lg-6 col-6">  {% endcomment %}
+              <!-- small box -->
+              {% comment %} <div class="small-box bg-danger">
+                <div class="inner">
+                  <h3>6</h3>
+  
+                  <p>Project Inprogress</p>
+                </div>
+                <div class="icon">
+                  <i class="ion ion-pie-graph"></i>
+                </div>
+                <a href="#" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+              </div> {% endcomment %}
+        {% comment %} </div>   {% endcomment %}
+            <!-- ./col -->
+        {% comment %} </div> {% endcomment %}
+        <!-- /.row -->
+        <!-- Project Chart Card -->
+        <div class="row">
+            <div class="col-md-6 col-md-6">
+             <h3 class="text-center">{% translate 'Project Overview' %}</h3>
+             <div class="card">
+                <div class="card-header bg-secondary text-white d-flex justify-content-between">
+                    <h4 class="card-title">{% translate 'Project Statistics' %}</h4>
+                    <select class="form-select w-auto">
+                        <option value="week">{% translate 'This Week' %}</option>
+                        <option value="month">{% translate 'This Month' %}</option>
+                        <option value="year">{% translate 'This Year' %}</option>
+                    </select>
+                </div>
+                <div class="card-body">
+                    <canvas id="project-chart" height="250"></canvas>
+                </div>
+            </div>
+            {% comment %} </div> {% endcomment %}
+            
+            
+            <!-- Example: Keep the first app only -->
+            {% comment %} <div class="col-lg-12 col-md-12">
+            {% for app in app_list %}
+                {% if forloop.first %}
+                    {% include "admin/app_list.html" with app_list=app|slice:":1" %}
+                {% endif %}
+            {% endfor %}{% endcomment %}
+        </div> 
+    
+
+        <!-- Project Chart Card -->
+        <div class="row">
+            <div class="col-md-6 col-md-12">
+             <h3 class="text-center">{% translate 'Project Overview' %}</h3>
+             <div class="card">
+                <div class="card-header bg-secondary text-white d-flex justify-content-between">
+                    <h4 class="card-title">{% translate 'Project Statistics' %}</h4>
+                    <select class="form-select w-auto">
+                        <option value="week">{% translate 'This Week' %}</option>
+                        <option value="month">{% translate 'This Month' %}</option>
+                        <option value="year">{% translate 'This Year' %}</option>
+                    </select>
+                </div>
+                <div class="card-body">
+                    <canvas id="project-chart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    
+    
+        <!-- Example: Keep the first app only -->
+        {% comment %} 
+        <div class="col-lg-12 col-md-12">
+            {% for app in app_list %}
+                {% if forloop.first %}
+                    {% include "admin/app_list.html" with app_list=app|slice:":2" %}
+                {% endif %}
+            {% endfor %}
+        </div> {% endcomment %}
+    {% comment %} </div> {% endcomment %}
+{% endblock %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <!-- Chart.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const ctx = document.getElementById('project-chart').getContext('2d');
+            const projectChart = new Chart(ctx, {
+                type: 'bar', // Choose 'line', 'pie', etc. for different types
+                data: {
+                    labels: ['Project A', 'Project B', 'Project C', 'Project D'],
+                    datasets: [{
+                        label: 'Completed Tasks',
+                        data: [12, 19, 3, 5], // Dummy data
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.2)',
+                            'rgba(54, 162, 235, 0.2)',
+                            'rgba(255, 206, 86, 0.2)',
+                            'rgba(75, 192, 192, 0.2)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(75, 192, 192, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+{% endblock %}
+
+{% comment %} <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Dashboard</title>
+</head>
+<body>
+    <h2>Welcome {{ employee.first_name }} {{ employee.last_name }}</h2>
+    <p>Email: {{ employee.email }}</p>
+    <p>Department: {{ employee.department_id.department_name }}</p>
+    <p>Designation: {{ employee.designation_id.designation_name }}</p>
+    <p>Status: {{ employee.status }}</p>
+    
+</body>
+</html> {% endcomment %}

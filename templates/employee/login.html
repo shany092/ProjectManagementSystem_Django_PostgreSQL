@@ -1,0 +1,45 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %} 
+{% block extrastyle %}{{ block.super }} {{ form.media }} {% endblock %} 
+{% block bodyclass %}{{ block.super }} login{% endblock %} {% block usertools %}{% endblock %} 
+{% block nav-global %}{% endblock %} {% block nav-sidebar %}{% endblock %} 
+{% block content_title %}Zeeshan Farooqi{% endblock %} 
+{% block nav-breadcrumbs %}{% endblock %} 
+{% block content %} {% if form.errors and not form.non_field_errors %}
+{% blocktranslate count counter=form.errors.items|length %}Please correct the error below.{% plural %}Please correct the errors below.{% endblocktranslate %}
+
+{% endif %} {% if form.non_field_errors %} {% for error in form.non_field_errors %}
+{{ error }}
+
+{% endfor %} {% endif %}
+{% if user.is_authenticated %}
+{% blocktranslate trimmed %} You are authenticated as {{ username }}, but are not authorized to access this page. Would you like to login to a different account? {% endblocktranslate %}
+
+{% endif %}
+{% csrf_token %}
+{{ form.username.errors }} {{ form.username.label_tag }} {{ form.username }}
+{{ form.password.errors }} {{ form.password.label_tag }} {{ form.password }}
+{% url 'admin_password_reset' as password_reset_url %} {% if password_reset_url %}
+{% translate 'Forgotten your password or username?' %}
+{% endif %}
+{% endblock %}
+
+{% comment %} <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Login</title>
+</head>
+<body>
+    <h2>Employee Login</h2>
+    <form method="post">
+        {% csrf_token %}
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required>
+        <button type="submit">Login</button>
+    </form>
+</body>
+</html> {% endcomment %}
