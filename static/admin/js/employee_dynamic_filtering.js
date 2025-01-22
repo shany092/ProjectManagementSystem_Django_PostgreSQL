@@ -103,4 +103,3 @@ const fetchStateData = (countryId,stateId) => {
     });
    
 };
-

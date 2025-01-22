@@ -1,0 +1,146 @@
+{% extends 'employee/base.html' %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block extrahead %}
+  {{ block.super }}
+  <script src="{% url 'admin:jsi18n' %}"></script>
+  {{ media }}
+  <link rel="stylesheet" href="{% static 'admin/css/forms.css' %}">
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f4f7fc;
+      margin: 0;
+      padding: 0;
+    }
+
+    .content-container {
+      max-width: 900px;
+      margin: 0 auto;
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.1);
+      padding: 20px 30px;
+      margin-top: 30px;
+      border: 1px solid #ddd;
+    }
+
+    .page-header {
+      text-align: center;
+      font-size: 32px;
+      margin-bottom: 25px;
+      color: #333;
+      font-weight: 600;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      font-weight: 600;
+      font-size: 16px;
+      color: #555;
+      margin-bottom: 10px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 16px;
+      color: #333;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background-color: #f8f8f8;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: #007bff;
+      box-shadow: 0 0 8px rgba(0, 123, 255, 0.6);
+      background-color: #fff;
+      outline: none;
+    }
+
+    .form-actions {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .form-actions button {
+      padding: 12px 24px;
+      font-size: 18px;
+      font-weight: bold;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .form-actions button:hover {
+      background-color: #0056b3;
+    }
+
+    .errornote {
+      background-color: #f8d7da;
+      color: #721c24;
+      padding: 12px 20px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .errornote p {
+      margin: 0;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+  <!-- Full Page Container -->
+  <div class="content-container">
+    <h1 class="page-header">Add Sub-Task to: {{ parent_task.task_name }}</h1>
+
+    <form id="task_form" enctype="multipart/form-data" method="post" novalidate>
+      {% csrf_token %}
+      
+      {% if form.errors %}
+        <div class="errornote">
+          {% blocktranslate count counter=form.errors|length %}
+            Please correct the error below.
+          {% plural %}
+            Please correct the errors below.
+          {% endblocktranslate %}
+        </div>
+      {% endif %}
+
+      <div class="form-group">
+        {{ form.as_p }}
+      </div>
+
+      <div class="form-actions">
+        <button type="submit">Save</button>
+      </div>
+    </form>
+  </div>
+{% endblock %}
+
+
+
+{% comment %} {% extends 'employee/base.html' %}
+
+{% block content %}
+<h1>Add Sub-Task to: {{ parent_task.task_name }}</h1>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Save</button>
+</form>
+{% endblock %} {% endcomment %}

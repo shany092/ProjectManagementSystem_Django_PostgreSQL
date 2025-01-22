@@ -1,0 +1,143 @@
+{% extends "admin/base_site.html" %}
+{% load static i18n %}
+
+{% block title %}MKX | Mekex Innovation{% endblock %}
+
+{% block extrahead %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'jazzmin/css/main.css' %}">
+  <link rel="stylesheet" href="{% static 'plugins/fontawesome-free/css/all.min.css' %}">
+  <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.1/dist/js/adminlte.min.js"></script>
+
+
+  <style>
+    .nav-global-custom li {
+        display: inline;
+        margin-right: 10px;
+    }
+    .hidden-alt-text {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(1px, 1px, 1px, 1px);
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+    /* General Styling */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f8f9fa;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+}
+
+/* Card Styling */
+.card {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    border: 1px solid #ddd;
+    overflow: hidden;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Card Header */
+.card-header {
+    background-color:#343a40;
+    color: white;
+    padding: 15px 20px;
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    border-bottom: 2px solid #ddd;
+}
+
+/* Card Body */
+.card-body {
+    padding: 20px;
+}
+
+/* Table Styling */
+.tasks-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 auto;
+    font-size: 16px;
+    text-align: left;
+}
+
+.tasks-table thead th {
+    background: #f8f9fa;
+    color: #333;
+    padding: 10px;
+    border: 1px solid #ddd;
+    text-align: center;
+}
+
+.tasks-table tbody td {
+    padding: 12px;
+    border: 1px solid #ddd;
+    text-align: center;
+}
+
+.tasks-table tbody tr:nth-child(even) {
+    background: #f2f2f2;
+}
+
+.tasks-table tbody tr:hover {
+    background: #e9f5ff;
+}
+
+.no-tasks {
+    text-align: center;
+    color: #555;
+    font-size: 18px;
+    padding: 15px 0;
+}
+
+/* Button Styling */
+.btn {
+    padding: 6px 12px;
+    background-color: #007bff;
+    color: white;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 14px;
+    display: inline-block;
+}
+
+.btn:hover {
+    background-color:rgb(138, 143, 148);
+}
+
+  </style>
+{% endblock %}
+
+{% block branding %}
+    <a href="{% url 'employee:index' %}" class="brand-link">
+        <img src="{% static 'img/logo.png' %}" alt="Mekex Innovation Logo" 
+             class="hidden-alt-text brand-image img-circle elevation-3" style="opacity: .8">
+        <span class="brand-text font-weight-light">Mekex Innovation</span>
+    </a>
+{% endblock %}
+
+{% block nav-global %}
+  {{ block.super }}
+  <div class="d-flex align-items-center">
+      {% if user.is_staff %}
+          <a href="{% url 'employee:index' %}">Employee Home</a>
+      {% else %}
+          <a href="{% url 'employee_dashboard' %}">Employee Dashboard</a>
+      {% endif %}
+  </div>
+{% endblock %}
+
+{% block footer %}
+  {{ block.super }}
+  <!-- You can add custom footer links or scripts here if needed -->
+{% endblock %}

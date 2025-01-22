@@ -23,7 +23,13 @@ body.dashboard {
 .small-box h3 {
     font-size: 36px; /* Large font size for counts */
 }
-
+.my-custom-bg {
+    background-color: #302e2e; /* Example: a shade of blue */
+    color: rgb(195, 195, 215); /* Adjust text color for contrast */
+}
+.my-custom-bg .small-box-footer {
+    color: #322457; /* Make footer text color match */
+}
 .dashboard-stats h3 {
     color: #302e2e; /* Dark grey color for headings */
 }

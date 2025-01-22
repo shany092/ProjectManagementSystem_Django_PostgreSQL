@@ -14,12 +14,21 @@ class EmailAuthenticationForm(AuthenticationForm):
             if self.user_cache is None:
                 raise forms.ValidationError("Invalid email or password.")
         return self.cleaned_data
-class TaskAdminForm(forms.ModelForm):
+
+class SubTaskForm(forms.ModelForm):
+    task = forms.ModelChoiceField(queryset=Task.objects.all(), label="Parent Task",
+            help_text="Select a task assigned to you.")
+
     class Meta:
         model = Task
-        fields = '__all__'
+        fields = ['task_name', 'due_date', 'priority', 'status', 'team_members', 'task']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Ensure team_members field is displayed in a "list" format
-        self.fields['team_members'].widget = forms.CheckboxSelectMultiple(attrs={'style': 'display:block'})   
+        self.fields['team_members'].queryset = Employee.objects.all()
+
+class TaskForm(forms.ModelForm):
+    class Meta:
+        model = Task
+        fields = ['task_name', 'due_date', 'status', 'priority']  # Fields relevant to sub-task
+

@@ -26,6 +26,8 @@ class CustomUserManager(BaseUserManager):
             
         user = self.model(email=email, username=username, **extra_fields)
         user.set_password(password)
+        extra_fields.setdefault('is_staff', True)
+
         user.save(using=self._db)
         return user
 
@@ -112,19 +114,6 @@ class EmployeeCodeRule(models.Model):
     
 CustomUser = get_user_model()
 
-class EmployeeProfile(models.Model):
-    employee_profile = models.OneToOneField(
-        settings.AUTH_USER_MODEL,  # Links to CustomUser
-        on_delete=models.CASCADE,
-        related_name='employee_profile'
-    )
-    department = models.CharField(max_length=100, blank=True, null=True)
-    position = models.CharField(max_length=100, blank=True, null=True)
-    joining_date = models.DateField(blank=True, null=True)
-    bio = models.TextField(blank=True, null=True)
-
-    def __str__(self):
-        return f"{self.user.username} - {self.position or 'Employee'}"
 class Employee(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
@@ -270,18 +259,80 @@ class Task(models.Model):
     project = models.ForeignKey('Project', on_delete=models.CASCADE,null=False)
    # project_id = models.ForeignKey('Project', on_delete=models.CASCADE, null=False)
     task_name = models.CharField(max_length=100)
+    sr_no = models.CharField(max_length=255, blank=True, null=True, unique=True)  # Will store SR. No
     due_date = models.DateField(blank=True, null=True)
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='Medium')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Not Started')
     team_members = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name="tasks", blank=True)  # Team members assigned to the task
     parent_task = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='subtasks') #  limit_choices_to=models.Q(parent_task__isnull=True)
+    assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='assigned_tasks')
 
+    class Meta:
+        permissions = [
+            ('can_add_subtasks', 'Can add sub-tasks'),
+        ]
     # def clean(self):
-    #     """Ensure the parent task belongs to the same project."""
+    #     """Ensure the sub task and parent task belongs to the same project."""
     #     if self.parent_task and self.parent_task.project != self.project:
     #         raise ValidationError("The parent task must belong to the same project.")
     # class Meta:
     #     unique_together = ('project', 'parent_task')  # Enforce the project and parent_task combination uniqueness
+   
+    def save(self, *args, **kwargs):
+        try:
+            # Check if the task is new (does not exist in the database yet)
+            is_new = self.pk is None
+
+            # Handle sub-task scenario
+            if self.parent_task_id:
+                # Fetch the parent task
+                parent_task = Task.objects.get(pk=self.parent_task_id)
+
+                # Ensure the current task inherits the project from the parent task
+                if not self.project_id and parent_task.project_id:
+                    self.project_id = parent_task.project_id
+
+                # Derive Sr. No. for sub-task only if the task is new or parent_task_id is being changed
+                if is_new or not self.sr_no or self.parent_task_id != self.__class__.objects.get(pk=self.pk).parent_task_id:
+                    sibling_count = Task.objects.filter(parent_task_id=self.parent_task_id).count() + 1
+                    self.sr_no = f"{parent_task.sr_no}.{sibling_count}"
+
+            # Handle top-level task scenario
+            elif self.project_id:
+                # Derive Sr. No. for top-level tasks in the project
+                if is_new or not self.sr_no:
+                    main_task_count = Task.objects.filter(project_id=self.project_id, parent_task_id__isnull=True).count() + 1
+                    self.sr_no = f"{self.project_id}.{main_task_count}"
+
+            # Raise an error if the task does not belong to a project or parent task
+            else:
+                raise ValueError("Task must be associated with either a project or a parent task.")
+
+            # Save the task
+            super().save(*args, **kwargs)
+
+        except Exception as e:
+            # Print debug info if an error occurs
+            print(f"Error saving task: {self}. Exception: {e}")
+            raise
+
+        # Perform any post-save logic
+        try:
+            if self.parent_task_id:
+                # Fetch the parent task again after save (if necessary)
+                parent_task = Task.objects.get(pk=self.parent_task_id)
+                # Ensure project is updated properly if not already set
+                if not self.project_id and parent_task.project_id:
+                    self.project_id = parent_task.project_id
+
+            elif self.project_id:
+                # No additional logic required for top-level tasks (optional placeholder)
+                pass
+
+        except Task.DoesNotExist:
+            print(f"Parent task with ID {self.parent_task_id} does not exist.")
+
+        
     # def save(self, *args, **kwargs):
     #     # Ensure project is set if the task has a parent task
     #     if not self.project and self.parent_task_id:
@@ -292,67 +343,199 @@ class Task(models.Model):
     #     print(self)
     #     # Call the original save method
     #     super().save(*args, **kwargs)
-    def save(self, *args, **kwargs):
-        try:
-            if self.parent_task_id:
-                # Try manually fetching the parent task
-                parent_task = Task.objects.get(pk=self.parent_task_id)
-                # print(f"Fetched parent task: {parent_task}, Project: {parent_task.project}")
-                if not self.project_id and parent_task.project_id:
-                    self.project_id = parent_task.project_id
-                else:
-                    print("Project already set or parent task has no project.")
-            else:
-                print("No parent task provided.")
+    
+    # def save(self, *args, **kwargs):
+    #     try:
+    #         # Case 1: Handle sub-tasks
+    #         if self.parent_task_id:
+    #             # Fetch the parent task
+    #             parent_task = Task.objects.get(pk=self.parent_task_id)
+    #             # Ensure the current task inherits the project from the parent task
+    #             if not self.project_id and parent_task.project_id:
+    #                 self.project_id = parent_task.project_id
 
-        # Call the original save method
-            super().save(*args, **kwargs)
-        except Exception as e:
-            print(f"Saving task: {self}")
-            print(f"Parent task ID: {self.parent_task_id}")
-            print(f"Assigned project from parent task: {self.project}")
-            print(f"Error occurred while saving task: {e}")
-        # raise  # Optional: Re-raise the exception
+    #             # Derive Sr. No. for sub-task
+    #             sibling_count = Task.objects.filter(parent_task_id=self.parent_task_id).count() + 1
+    #             self.sr_no = f"{parent_task.sr_no}.{sibling_count}"
 
+    #         # Case 2: Handle top-level tasks
+    #         elif self.project_id:
+    #             # Derive Sr. No. for top-level tasks in the project
+    #             main_task_count = Task.objects.filter(project_id=self.project_id, parent_task_id__isnull=True).count() + 1
+    #             self.sr_no = f"{self.project.id}.{main_task_count}"
+
+    #         # Case 3: Edge case where no project or parent task exists
+    #         else:
+    #             raise ValueError("Task must be associated with either a project or a parent task.")
+
+    #         # Save the task
+    #         super().save(*args, **kwargs)
+
+    #     except Exception as e:
+    #         # Print debug info if there's an exception
+    #         print(f"Error occurred while saving task: {self}. Exception: {e}")
+    #         raise
+
+    #     # Additional validation/logic after saving if needed
+    #     if self.parent_task_id:
+    #         try:
+    #             # Fetch and update parent-related fields post-save
+    #             parent_task = Task.objects.get(pk=self.parent_task_id)
+    #             if not self.project_id and parent_task.project_id:
+    #                 self.project_id = parent_task.project_id
+
+    #         except Task.DoesNotExist:
+    #             print(f"Parent task with ID {self.parent_task_id} does not exist.")
+
+    #     elif self.project_id:
+    #         # Logic for top-level tasks if required post-save
+    #         pass
+
+    # def save2(self, *args, **kwargs):
+    #     try:
+    #         # Case 1: Handle if task has a parent (sub-task scenario)
+    #         if self.parent_task_id:
+    #             print(f"1st case: {self}")
+    #             # Fetch the parent task
+    #             parent_task = Task.objects.get(pk=self.parent_task_id)
+    #             print(f"parent task: {parent_task}")
+                
+    #             # Derive Sr. No. for the current task based on parent's Sr. No.
+    #             sibling_count = Task.objects.filter(parent_task_id=self.parent_task_id).count() + 1
+    #             self.sr_no = f"{parent_task.sr_no}.{sibling_count}"
+    #             print(f"parent task: on line 298 {self.sr_no}")
+
+    #             # Inherit the project from the parent task if not set
+    #             if not self.project_id and parent_task.project_id:
+    #                 self.project_id = parent_task.project_id
+    #                 print(f"parent task: on line 303 {self.project_id}")
+
+    #         # Case 2: Handle top-level tasks (no parent task)
+    #         elif self.project_id:
+    #             # Calculate based on the project's existing tasks
+    #             main_task_count = Task.objects.filter(project_id=self.project_id, parent_task_id__isnull=True).count() + 1
+    #             self.sr_no = f"{self.project.id}.{main_task_count}"
+    #             print(f"2nd case: {self.sr_no}")
+
+    #         # Case 3: Edge case for tasks with no project or parent (Optional)
+    #         else:
+    #             print("Error: Task must belong to either a project or a parent task.")
+    #             raise ValueError("Task must be associated with a project or a parent task.")
+
+    #         # Save the object
+    #         super().save(*args, **kwargs)
+
+    #     except Exception as e:
+    #         # Handle any exceptions and print debug info
+    #         print(f"Error saving task: {self}. Exception: {e}")
+    #         raise
+        
+    #     try:
+    #         if not self.parent_task_id:
+    #             # Try manually fetching the parent task
+    #             parent_task = Task.objects.get(pk=self.parent_task_id)
+    #             # print(f"Fetched parent task: {parent_task}, Project: {parent_task.project}")
+    #             if not self.project_id and parent_task.project_id:
+    #                 self.project_id = parent_task.project_id
+    #                 self.sr_no = Project.id
+    #             else:
+    #                 print("Project already set or parent task has no project.")
+    #         else:
+    #             print("No parent task provided.")
+    #         # Automatically set the Sr. No on saving task       
+    #         # Call the original save method
+    #         # Calculate Sr. No
+    #         if self.parent_task_id:
+    #             if not self.sr_no:
+    #             # If it's a sub-task, derive Sr. No from parent task
+    #               self.sr_no = f"{self.parent_task_id.sr_no}.{self._meta.model.objects.filter(parent_task_id=self.parent_task_id).count() + 1}"
+                
+    #         elif self.project:
+    #             # If it's a main task, it gets a project-based Sr. No
+    #             self.sr_no = f"{self.project.id}.{self._meta.model.objects.filter(project=self.project).count() + 1}"
+
+    #         super().save(*args, **kwargs)
+    #     except Exception as e:
+    #         print(f"Saving task: {self}")
+    #         print(f"Parent task ID: {self.parent_task_id}")
+    #         print(f"Assigned project from parent task: {self.project}")
+    #         print(f"Error occurred while saving task: {e}")
+    #     # raise  # Optional: Re-raise the exception
+    
+    # def save2(self, *args, **kwargs):
+    #     # Derive sr_no before saving
+    
+    #     if not self.sr_no:
+    #         if self.parent_task:
+    #             # Subtask scenario
+    #             parent_task = Task.objects.get(pk=self.parent_task_id)
+    #             self.project_id = parent_task.project_id
+    #             sibling_count = self.parent_task.subtasks.count() + 1
+    #             self.sr_no = f"{self.parent_task.sr_no}.{sibling_count}"
+                
+                
+    #     else:
+    #         # Top-level task scenario
+    #         main_task_count = (Task.objects.filter(project=self.project, parent_task__isnull=True).count() + 1)
+    #         self.sr_no = f"{self.project.id}.{main_task_count}"
+    #     super().save(*args, **kwargs)
+    
+    # def save(self, *args, **kwargs):
+    #     try:
+    #         # Handle sub-task scenario
+    #         if self.parent_task_id:
+    #             # Fetch the parent task
+    #             parent_task = Task.objects.get(pk=self.parent_task_id)
+
+    #             # Ensure the current task inherits the project from the parent task
+    #             if not self.project_id and parent_task.project_id:
+    #                 self.project_id = parent_task.project_id
+
+    #             # Derive Sr. No. for sub-task
+    #             sibling_count = Task.objects.filter(parent_task_id=self.parent_task_id).count() + 1
+    #             self.sr_no = f"{parent_task.sr_no}.{sibling_count}"
+
+    #         # Handle top-level task scenario
+    #         elif self.project_id:
+    #             # Derive Sr. No. for top-level tasks in the project
+    #             main_task_count = Task.objects.filter(project_id=self.project_id, parent_task_id__isnull=True).count() + 1
+    #             self.sr_no = f"{self.project_id}.{main_task_count}"
+
+    #         # Raise an error if the task does not belong to a project or parent task
+    #         else:
+    #             raise ValueError("Task must be associated with either a project or a parent task.")
+
+    #         # Save the task
+    #         super().save(*args, **kwargs)
+
+    #     except Exception as e:
+    #         # Print debug info if an error occurs
+    #         print(f"Error saving task: {self}. Exception: {e}")
+    #         raise
+
+    #     # Perform any post-save logic
+    #     try:
+    #         if self.parent_task_id:
+    #             # Fetch the parent task again after save (if necessary)
+    #             parent_task = Task.objects.get(pk=self.parent_task_id)
+    #             # Ensure project is updated properly if not already set
+    #             if not self.project_id and parent_task.project_id:
+    #                 self.project_id = parent_task.project_id
+
+    #         elif self.project_id:
+    #             # No additional logic required for top-level tasks (optional placeholder)
+    #             pass
+
+    #     except Task.DoesNotExist:
+    #         print(f"Parent task with ID {self.parent_task_id} does not exist.")
+
+    # def get_next_task_number(self):
+    #     # This is a helper to find the next task number for child tasks
+    #     sibling_tasks = self.parent_task.sub_tasks.all()
+    #     return len(sibling_tasks) + 1
+    
     def __str__(self):
-        return f"{self.task_name} ({self.project.project_name})"
-
-class Team(models.Model):
-    """Model representing a team."""
-    team_name = models.CharField(max_length=100)
-
-    created_by = models.ForeignKey('Employee', on_delete=models.SET_NULL, null=True, related_name="created_teams")
-    members = models.ManyToManyField('Employee', through="TeamMember", related_name="teams")
-
-    def __str__(self):
-        return self.team_name
-
-class TeamMember(models.Model):
-    """Model for associating users with teams."""
-    team = models.ForeignKey(Team, on_delete=models.CASCADE)
-    user = models.ForeignKey('Employee', on_delete=models.CASCADE)
-    joined_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.user.get_full_name()} in {self.team.team_name}"
-
-class Comment(models.Model):
-    """Model representing comments on tasks."""
-    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="comments")
-    # user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-    content = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Comment by {self.user.username} on {self.task.task_name}"
-
-class ProjectTeam(models.Model):
-    """Model for associating teams with projects."""
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="project_teams")
-    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="team_projects")
-
-    def __str__(self):
-        return f"Team {self.team.team_name} on Project {self.project.project_name}"
+        return f"{self.task_name} ({self.sr_no})"
 
 class Clients(models.Model):
     Client_Number = models.AutoField(primary_key=True)  
@@ -447,5 +630,43 @@ class Department(models.Model):
 
     def __str__(self):
         return self.department_name
+
+class Team(models.Model):
+    """Model representing a team."""
+    team_name = models.CharField(max_length=100)
+
+    created_by = models.ForeignKey('Employee', on_delete=models.SET_NULL, null=True, related_name="created_teams")
+    members = models.ManyToManyField('Employee', through="TeamMember", related_name="teams")
+
+    def __str__(self):
+        return self.team_name
+
+class TeamMember(models.Model):
+    """Model for associating users with teams."""
+    team = models.ForeignKey(Team, on_delete=models.CASCADE)
+    user = models.ForeignKey('Employee', on_delete=models.CASCADE)
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.get_full_name()} in {self.team.team_name}"
+
+class Comment(models.Model):
+    """Model representing comments on tasks."""
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="comments")
+    # user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Comment by {self.user.username} on {self.task.task_name}"
+
+class ProjectTeam(models.Model):
+    """Model for associating teams with projects."""
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="project_teams")
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="team_projects")
+
+    def __str__(self):
+        return f"Team {self.team.team_name} on Project {self.project.project_name}"
+
 
     

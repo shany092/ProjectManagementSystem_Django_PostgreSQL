@@ -1,0 +1,76 @@
+{% extends 'employee/base.html' %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    {% comment %} <a href="{% url 'employee_dashboard' %}">Employee Dashboard</a> › Tasks {% endcomment %}
+</div>
+{% endblock %}
+
+{% block content %}
+
+
+<div class="card">
+    <div class="card-header">
+        <h2>Your Tasks</h2>
+    </div>
+    <div class="card-body">
+        <table class="tasks-table">
+            <thead>
+                <tr>
+                    <th>Sr No</th>
+                    <th>Task Name</th>
+                    <th>Project</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks %}
+                <tr>
+                    <td>{{ task.sr_no }}</td>
+                    <td>{{ task.task_name }}</td>
+                    <td>{{ task.project }}</td>
+                    <td>{{ task.get_status_display }}</td>
+                    <td>
+                        <a href="{% url 'employee_add_subtask' task.id %}" class="btn">Add Sub-Task</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="no-tasks">No tasks assigned to you.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% comment %} <table>
+    <thead>
+        <tr>
+            <th>Sr No</th>
+            <th>Task Name</th>
+            <th>Project</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for task in tasks %}
+        <tr>
+            <td>{{ task.sr_no }}</td>
+            <td>{{ task.task_name }}</td>
+            <td>{{ task.project }}</td>
+            <td>{{ task.get_status_display }}</td>
+            <td>
+                <a href="{% url 'employee_add_subtask' task.id %}">Add Sub-Task</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5">No tasks assigned to you.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table> {% endcomment %}
+{% endblock %}

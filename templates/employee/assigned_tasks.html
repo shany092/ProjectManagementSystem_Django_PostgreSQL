@@ -1,14 +1,17 @@
-{% extends 'base.html' %}
+{% extends "admin/base_site.html" %}
+
+{% extends "base.html" %}
+
 {% block content %}
 <h1>Assigned Tasks</h1>
 <ul>
     {% for task in assigned_tasks %}
         <li>
-            {{ task.task_name }} ({{ task.status }})
-            {% if task.subtasks.exists %}
+        <strong>{{ task.task_name }}</strong> (Priority: {{ task.priority }}, Status: {{ task.status }})
+        {% if task.subtasks.all %}
             <ul>
                 {% for subtask in task.subtasks.all %}
-                    <li>{{ subtask.task_name }} ({{ subtask.status }})</li>
+              <li>{{ subtask.task_name }} (Priority: {{ subtask.priority }})</li>
                 {% endfor %}
             </ul>
             {% endif %}

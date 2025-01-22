@@ -1,8 +1,11 @@
 from django import forms
+from django.db.models.signals import post_migrate
+from django.contrib.contenttypes.models import ContentType
+from django.apps import apps
 from django.db.models import Max
-from .forms import TaskAdminForm
+from .forms import SubTaskForm
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.admin import UserAdmin, GroupAdmin
 from django.contrib import messages
 from django.utils.html import format_html
 
@@ -11,7 +14,7 @@ from django.templatetags.static import static
 from django.utils.safestring import mark_safe
 from django.contrib.admin.widgets import RelatedFieldWidgetWrapper
 from django.utils.functional import cached_property
-from django.contrib.auth.models import Group, Permission
+from django.contrib.auth.models import Group, Permission, Group
 from django.contrib.admin import AdminSite
 from django.urls import path
 from django.shortcuts import render, redirect
@@ -43,7 +46,7 @@ class MyCustomAdminSite(AdminSite):
         Custom dashboard view.
         """
         if not request.user.is_superuser:
-            return redirect('/employee/dashboard/')
+            return redirect('/employee-admin/')
         return render(request, "index.html")
 
     def get_urls(self):
@@ -105,7 +108,8 @@ class CustomUserAdmin(UserAdmin):
                 field.disabled = True
         return form
 
-# Employee Admin
+# ------------------------------------------ Employee Admin
+
 class EmployeeAdminForm(forms.ModelForm):
     class Meta:
         model = Employee
@@ -217,6 +221,8 @@ class EmployeeAdmin(admin.ModelAdmin):
             obj.user = user
             obj.save()  # Update the Employee instance with the user association
 
+# --------------------------- Setups ------------
+
 class BaseLocationAdmin(admin.ModelAdmin):
     search_fields = ('name',)
 
@@ -280,30 +286,6 @@ class HiddenAdmin(admin.ModelAdmin):
         # Return False to hide this model from the sidebar menu
         return False
 
-# Project Admin
-class TaskInline(admin.TabularInline):  # TabularInline provides a table-like inline view
-    model = Task
-    fields = ('task_name', 'team_members', 'due_date', 'priority', 'status')  # Fields to show inline
-    show_change_link = True  # Add a link to edit the task directly
-    extra = 1  # Number of empty forms to display
-
-# from django.contrib.admin import TabularInline
-
-# class EmployeeInline(admin.TabularInline):
-#     model = Project.team_members.through
-#     extra = 1  # Number of additional rows for new members
-#     verbose_name = "Team Member"
-#     verbose_name_plural = "Team Members"
-
-class SubTaskInline(admin.TabularInline):
-    model = Task
-    fk_name = 'parent_task'
-    project_id = 'project_id'
-    extra = 1
-    exclude = ('project','team_members')
-    # fields = ('task_name', 'due_date', 'priority', 'status', 'team_members')
-
-
 # ------------------------------- Project part ----------------------------
 
 @admin.register(ProjectType, site=admin_site)
@@ -317,6 +299,57 @@ class ProjectTypeAdmin(admin.ModelAdmin):
 import logging
 
 logger = logging.getLogger(__name__)
+
+# ------------------------------- Custom GroupAdmin ----------------
+@admin.register(Group, site=admin_site)
+class CustomGroupAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+    search_fields = ('name',)
+    filter_horizontal = ('permissions',)
+
+# admin.register(Group, CustomGroupAdmin)
+# ---------------------------------------- Custom Group Admin For Employees ----
+
+class CustomGroupAdminForEmployees(GroupAdmin):
+    list_display = ('name',)
+    search_fields = ('name',)
+    filter_horizontal = ('permissions',)
+
+    def has_module_permission(self, request):
+        """
+        Allow access only if the user is an admin or employee.
+        """
+        return request.user.is_staff or request.user.groups.filter(name='Employees').exists()
+
+    def has_view_permission(self, request, obj=None):
+        """
+        Restrict editing rights for employees.
+        """
+        if request.user.groups.filter(name='Employees').exists():
+            return True
+        return super().has_view_permission(request, obj)
+
+  
+#--------------------------------------- Project Admin
+class TaskInline(admin.TabularInline):  # TabularInline provides a table-like inline view
+    model = Task
+    fields = ('task_name', 'team_members', 'due_date', 'priority', 'status')  # Fields to show inline
+    show_change_link = True  # Add a link to edit the task directly
+    extra = 1  # Number of empty forms to display
+
+class SubTaskInline(admin.TabularInline):
+    model = Task
+    fk_name = 'parent_task'
+    project_id = 'project_id'
+    extra = 1
+    exclude = ('project','team_members')
+    # fields = ('task_name', 'due_date', 'priority', 'status', 'team_members')
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if not request.user.is_superuser:
+            qs = qs.filter(assigned_to=request.user)
+        return qs
+
 class ProjectAdminForm(forms.ModelForm):
     class Meta:
         model = Project
@@ -408,6 +441,21 @@ class ProjectAdmin(admin.ModelAdmin):
         #     raise Exception("Project Type code is not properly set!")
         
         super().save(*args, **kwargs)
+    def has_view_permission(self, request, obj=None):
+        """
+        Allow view for employees.
+        """
+        if request.user.groups.filter(name='Employees').exists():
+            return True
+        return super().has_view_permission(request, obj)
+
+    def has_change_permission(self, request, obj=None):
+        """
+        Restrict change permission for employees.
+        """
+        if request.user.groups.filter(name='Employees').exists():
+            return False
+        return super().has_change_permission(request, obj)
 
     # def get_form(self, request, obj=None, **kwargs):
     #     form = super().get_form(request, obj, **kwargs)
@@ -459,21 +507,66 @@ class TaskAdminForm(forms.ModelForm):
                     self.fields['parent_task'].queryset = Task.objects.filter(project=project)
                 except Project.DoesNotExist:
                     pass
+
 @admin.register(Task, site=admin_site)
 class TaskAdmin(admin.ModelAdmin):
     form = TaskAdminForm
-    list_display = ('custom_change_link', 'task_name', 'project', 'due_date', 'priority', 'status', 'parent_task') #, 'add_subtask_link' ,'display_team_members'
+    list_display = ('sr_no','custom_change_link', 'task_name', 'project', 'due_date', 'priority', 'status', 'parent_task') #, 'add_subtask_link' ,'display_team_members'
     search_fields = ('task_name', 'project__project_name')
-    list_filter = ('priority', 'status', 'due_date')
+    list_filter = ('priority', 'due_date', 'project')
     # filter_horizontal = ('team_members',)  # Enable multi-select for team members
     # filter_vertical = ('team_members',)
     # exclude = ('project',)
     raw_id_fields = ('parent_task',)
     # exclude = ('project','parent_task')
     inlines = [SubTaskInline]
+    def has_view_permission(self, request, obj=None):
+        """
+        Allow view for employees.
+        """
+        if request.user.groups.filter(name='Employees').exists():
+            return True
+        return super().has_view_permission(request, obj)
+    def has_add_permission(self, request):
+        if request.user.groups.filter(name='Employees').exists():
+            return request.user.has_perm('app_name.can_add_subtasks')
+        return super().has_add_permission(request)
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        # Limit tasks shown in the admin based on assigned tasks
+        return qs.filter(assigned_to=request.user)
+    def save_model(self, request, obj, form, change):
+        """
+        Override save_model to handle `assigned_to` for subtasks.
+        """
+        if obj.parent_task and not obj.assigned_to:
+            # Assign subtask to the same user as the parent task
+            obj.assigned_to = obj.parent_task.assigned_to
+        elif not obj.assigned_to:
+            # Assign top-level tasks to the user creating the task
+            obj.assigned_to = request.user
+
+        super().save_model(request, obj, form, change)
+            
+    def save_model(self, request, obj, form, change):
+        # Ensure sub-task being added is tied to an allowed parent
+        if obj.parent_task and obj.parent_task.assigned_to != request.user:
+            raise PermissionError("You cannot add sub-tasks to tasks not assigned to you.")
+        super().save_model(request, obj, form, change)
+
+    def has_change_permission(self, request, obj=None):
+        """
+        Restrict change permission for employees.
+        """
+        if request.user.groups.filter(name='Employees').exists():
+            return False
+        return super().has_change_permission(request, obj)
 
     def add_view(self, request, object_id=None, form_url='', extra_context=None):
-        """Override to pre-fill project or parent task."""
+        """Override to pre-fill project or sub tasks."""
         if object_id:
             try:
                 parent_task = Task.objects.get(pk=object_id)
@@ -508,48 +601,18 @@ class TaskAdmin(admin.ModelAdmin):
         # Return the formatted HTML link
         return format_html('<a href="{}">Change</a>', change_url)
     
-    # def add_subtask_link(self, obj):
-    #     """Generate a dynamic URL for adding a subtask under this task."""
-    #     url = reverse('admin:pmpapp_task_add') + f'?project={obj.project.id}&parent_task={obj.id}'
-    #     return format_html('<a href="{}">Add Subtask</a>', url)
-    # add_subtask_link.short_description = 'Actions'
-    # def save_model(self, request, obj, form, change):
-    #     """Set project for new tasks before saving."""
-    #     # if not obj.pk:  # New task
-    #     project_id = request.GET.get('project')
-    #     if project_id:
-    #         obj.project = Project.objects.get(pk=project_id)
-    #         # obj.project_id= project_id
-    #     super().save_model(request, obj, form, change)
-    # def save(self, commit=True):
-    #     if not self.instance.project and self.instance.parent_task:
-    #         parent_task = Task.objects.get(pk=self.instance.parent_task)
-    #         self.instance.project = parent_task.project
-        
-    #     return super().save(commit=commit)
-
-    # def save_model(self, request, obj, form, change):
-    #     """Ensure the project is correctly assigned when saving."""
-    #     if not obj.project and obj.parent_task:
-    #         parent_task = Task.objects.get(pk=obj.parent_task)
-    #         obj.project = parent_task.project
-    #     elif request:
-    #         project_id = request.GET.get('project')
-    #         obj.project = Project.objects.get(pk=project_id)
-    #     else:
-    #         obj.project = Project.objects.get(pk=request.project)
-    #         obj.project = request.project
-    #     super().save_model(request, obj, form, change)
     def get_task_id_from_url(self, request):
         """Extract the task ID from the URL path."""
         path = request.path
         parts = path.split('/')
         task_id = parts[4]
         return task_id
+    
     def get_form(self, request, obj=None, **kwargs):
         """Inject query parameters into the form."""
         form = super().get_form(request, obj, **kwargs)
-
+        if not request.user.is_superuser:
+            form.base_fields['parent_task'].queryset = Task.objects.filter(assigned_to=request.user)
         # Read query parameters
         project_id = request.GET.get('project')
         parent_task_id = request.GET.get('parent_task')
@@ -561,29 +624,12 @@ class TaskAdmin(admin.ModelAdmin):
 
         return form
     
-    # def get_form(self, request, obj=None, **kwargs):
-    #     form_class = super().get_form(request, obj, **kwargs)  # Get the form class
-    #     # Override the form's _init_ to pass the request
-    #     class FormWithRequest(form_class):
-    #         def _init_(self, *args, **form_kwargs):
-    #             form_kwargs['request'] = request
-    #             super()._init_(*args, **form_kwargs)
-        
-    #     return FormWithRequest
-    #  # def get_form(self, request, obj=None, **kwargs):
-    # 
-        #     form = super().get_form(request, obj, **kwargs)
-    #     form.request = request  # Pass the request to the form
-    #     return form
-    # def save_model(self, request, obj, form, change):
-    #     if not obj.pk:  # If the object is new
-    #         obj.project = form.initial.get('project')  # Set the project from the initial data
-    #     super().save_model(request, obj, form, change)
+    
     class Media:
         css = {
         'all': ('admin/css/custom_project.css',)  # Custom CSS (if needed)
         }
-        js = ('admin/js/custom_project.js',)  # Custom JS for additional interactivity
+        js = ('admin/js/accordion.js',)  # Custom JS for additional interactivity
     
 # Team Admin
 @admin.register(Team, site=admin_site)
@@ -744,11 +790,97 @@ class DesignationAdmin(admin.ModelAdmin):
     list_display = ('designation_name',)
     search_fields = ('designation_name',)
 
-# Custom GroupAdmin
-class CustomGroupAdmin(admin.ModelAdmin):
-    list_display = ('name',)
-    search_fields = ('name',)
-    filter_horizontal = ('permissions',)
+# Create your custom employee admin site
+class EmployeeAdminSite(AdminSite):
+    site_header = "Zeeshan Employee Dashboard"
+    site_title = "Zee Title Employee Admin Portal"
+    index_title = "Zee Welcome, Employee"
 
-admin_site.register(Group, CustomGroupAdmin)
+employee_admin_site = EmployeeAdminSite(name='employee_admin')
+
+employee_admin_site.register(Employee, EmployeeAdmin)
+
+# Register models for employee-specific admin
+@admin.register(Project, site=employee_admin_site)
+class EmployeeProjectAdmin(admin.ModelAdmin):
+    list_display = ('project_name', 'Client_ID', 'status', 'start_date', 'end_date')
+    fields = ('Client_ID', 'project_type', 'project_name', 'description', 'status')
+    search_fields = ('project_name', 'Client_ID')
+    list_filter = ('status', 'start_date')
+
+from django import forms
+from .models import Task
+
+
+@admin.register(Task, site=employee_admin_site)
+class EmployeeTaskAdmin(admin.ModelAdmin):
+    list_display = ('sr_no','task_name', 'project', 'due_date', 'status', 'priority')
+    fields = ('task_name', 'due_date', 'status', 'priority', 'project')
+    search_fields = ('task_name', 'project__project_name')
+    list_filter = ('status', 'priority')
+    
+    def get_queryset(self, request):
+        # Only display tasks assigned to the logged-in employee
+        queryset = super().get_queryset(request)
+        if not request.user.is_superuser:  # Filter tasks for employees
+            queryset = queryset.filter(assigned_to=request.user)
+        return queryset
+
+    def has_add_permission(self, request, obj=None):
+        # Allow employees to add tasks only if they have the required permission
+        if request.user.is_superuser:  # Superusers can always add
+            return True
+        return request.user.has_perm("your_app_name.can_add_subtasks")
+
+    def save_model(self, request, obj, form, change):
+        # Set 'assigned_to' to the current user for tasks created by employees
+        if not request.user.is_superuser and not obj.assigned_to:
+            obj.assigned_to = request.user
+        super().save_model(request, obj, form, change)
+    
+
+# Helper function for dynamic admin registration
+def register_all_models_for_employees(admin_site):
+    """
+    Dynamically register all models with limited permissions for the Employee Admin Site.
+    """
+    for model in apps.get_models():
+        class LimitedEmployeeAdmin(admin.ModelAdmin):
+            list_display = [field.name for field in model._meta.fields[:4]]  # Show the first 4 fields
+            search_fields = [field.name for field in model._meta.fields if field.name]  # Basic search setup
+            readonly_fields = [field.name for field in model._meta.fields]  # Make fields read-only
+
+        try:
+            admin_site.register(model, LimitedEmployeeAdmin)
+        except admin.sites.AlreadyRegistered:
+            pass
+
+# Dynamically register all models for the Employee Admin Site
+register_all_models_for_employees(employee_admin_site)
+
+def assign_permissions_to_employee_group(sender, **kwargs):
+    """
+    Automatically assign view permissions for all models to the Employee group.
+    """
+    employee_group, created = Group.objects.get_or_create(name="Employee")
+
+    # Loop through all models in the project
+    for model in apps.get_models():
+        content_type = ContentType.objects.get_for_model(model)
+
+        # Add 'view' permission for this model
+        view_permission = Permission.objects.filter(content_type=content_type, codename=f"view_{model._meta.model_name}")
+        if view_permission.exists():
+            employee_group.permissions.add(*view_permission)
+
+# Connect the signal to the post_migrate signal
+    post_migrate.connect(assign_permissions_to_employee_group)
+
+def get_form(self, request, obj=None, **kwargs):
+        # Limit the parent task options to tasks assigned to the logged-in employee
+        form = super().get_form(request, obj, **kwargs)
+        if not request.user.is_superuser:  # Only apply to non-superusers
+            form.base_fields['parent_task'].queryset = Task.objects.filter(assigned_to=request.user)
+        return form
+
 

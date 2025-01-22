@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% extends "admin/base_site.html" %}
+
+{% comment %} {% extends "base.html" %} {% endcomment %}
+ 
+
+{% block content %}
+
+     <h1>Task Detail</h1>
+    <div>
+        <h2>{{ task.task_name }}</h2>
+        <p><strong>Task ID:</strong> {{ task.id }}</p>
+        <p><strong>Project:</strong> {{ task.project.project_name }}</p>
+        <p><strong>Priority:</strong> {{ task.priority }}</p>
+        <p><strong>Status:</strong> {{ task.status }}</p>
+        <p><strong>Due Date:</strong> {{ task.due_date }}</p>
+
+        {% if task.parent_task %}
+            <p><strong>Parent Task:</strong> {{ task.parent_task.task_name }}</p>
+        {% else %}
+            <p><strong>No Parent Task</strong></p>
+        {% endif %}
+
+        {% comment %} <h3>Assigned Team Members:</h3>
+        <ul>
+            {% for member in task.team_members.all %}
+                <li>{{ member.get_full_name }}</li>  <!-- Assuming get_full_name is available -->
+            {% endfor %}
+        </ul> {% endcomment %}
+    </div>
+
+    {% comment %} <h1>Task: {{ task.task_name }}</h1>
+<p>Status: {{ task.status }}</p>
+<p>Priority: {{ task.priority }}</p>
+<p>Assigned to:</p>
+<ul>
+  {% for member in task.team_members.all %}
+      <li>{{ member.get_full_name }}</li>  <!-- Assuming you have a get_full_name method for users -->
+  {% endfor %}
+</ul>  {% endcomment %}
+   <a href="{% url 'employee-dashboard' %}">Back to Dashboard</a>
+
+  {% endblock %}
+
+

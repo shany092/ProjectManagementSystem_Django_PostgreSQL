@@ -1,0 +1,63 @@
+{% extends "base.html" %}  <!-- Use your site's base template, adjust accordingly -->
+
+{% block content %}
+  <div class="project-tasks">
+      <h1>Project Tasks</h1>
+      <ul class="task-list">
+          {% for task in tasks %}
+              <li class="task">
+                  <a href="#" class="task-header">{{ task.sr_no }} - {{ task.name }}</a>
+                  {% if task.sub_tasks.all %}
+                      <ul class="sub-task-accordion">
+                          {% for sub_task in task.sub_tasks.all %}
+                              <li class="sub-task">
+                                  <a href="#" class="sub-task-header">{{ sub_task.sr_no }} - {{ sub_task.name }}</a>
+                              </li>
+                          {% endfor %}
+                      </ul>
+                  {% endif %}
+              </li>
+          {% endfor %}
+      </ul>
+  </div>
+
+  <script>
+      // Simple JS for toggling accordion
+      document.querySelectorAll('.task-header').forEach(function (taskHeader) {
+          taskHeader.addEventListener('click', function (e) {
+              const subAccordion = taskHeader.parentElement.querySelector('.sub-task-accordion');
+              if (subAccordion) {
+                  subAccordion.style.display = (subAccordion.style.display === 'none' || !subAccordion.style.display) ? 'block' : 'none';
+              }
+          });
+      });
+  </script>
+  <style>
+
+.task-header, .sub-task-header {
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.sub-task-accordion {
+    display: none; /* Hidden by default */
+    list-style-type: none;
+    padding-left: 20px;
+}
+
+.task, .sub-task {
+    padding: 5px;
+    border: 1px solid #ddd; /* Add borders for better visibility */
+    margin-top: 5px;
+}
+
+.task-list {
+    margin-top: 20px;
+}
+
+.task-header:hover, .sub-task-header:hover {
+    background-color: #f0f0f0;
+}
+  </style>
+
+{% endblock %}
